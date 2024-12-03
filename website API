@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto & Stock Prices with Quiz and Joke</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
+body {
+font-family: Arial, sans-serif;
+background-color: #f4f4f4;
+padding: 20px;
+}
+.container {
+max-width: 900px;
+margin: 0 auto;
+}
+.section {
+margin-bottom: 40px;
+padding: 20px;
+background-color: #fff;
+border-radius: 8px;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+h2, h3 {
+text-align: center;
+color: #333;
+}
+canvas {
+width: 100% !important;
+height: 400px !important;
+}
+button {
+display: block;
+margin: 20px auto;
+padding: 10px 20px;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+button:hover {
+background-color: #45a049;
+}
+.dropdown {
+display: block;
+width: 100%;
+text-align: left;
+padding: 10px;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+font-size: 16px;
+}
+.dropdown:hover {
+background-color: #45a049;
+}
+.dropdown-content {
+display: none;
+padding: 10px;
+background-color: #f9f9f9;
+border-radius: 5px;
+margin-top: 10px;
+}
+.dropdown-content button {
+margin-top: 10px;
+}
+.result, .joke-text {
+text-align: center;
+font-size: 18px;
+margin-top: 20px;
+}
+.crypto-values {
+display: flex;
+justify-content: space-around;
+margin-top: 10px;
+font-size: 16px;
+color: #555;
+}
+.crypto-value {
+text-align: center;
+width: 20%;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="section">
+<h2>Welcome to the Dashboard</h2>
+<p>Click on the dropdowns below to interact with the content.</p>
+</div>
+
+<div class="section">
+<div class="dropdown" onclick="toggleDropdown('crypto')">Cryptocurrency Prices</div>
+<div id="crypto-container" class="dropdown-content">
+<h3>Cryptocurrency Prices (PHP)</h3>
+<canvas id="cryptoChart"></canvas>
+<div id="cryptoValues" class="crypto-values"></div>
+<button onclick="fetchCryptoData()">Refresh Data</button>
+</div>
+</div>
+
+<div class="section">
+<div class="dropdown" onclick="toggleDropdown('joke')">Programming Joke</div>
+<div id="joke-container" class="dropdown-content">
+<h3>Programming Joke</h3>
+<p class="joke-text" id="joke">Loading a joke...</p>
+<button onclick="getJoke()">Get a Joke</button>
+</div>
+</div>
+
+<div class="section">
+<div class="dropdown" onclick="toggleDropdown('quiz')">Trivia Quiz</div>
+<div id="quiz-container" class="dropdown-content">
+<h3>Trivia Quiz</h3>
+<div id="quiz-content"></div>
+<button onclick="nextQuestion()">Next Question</button>
+<div class="result" id="result"></div>
+</div>
+</div>
+</div>
+
+<script>
+function toggleDropdown(containerId) {
+const container = document.getElementById(containerId + '-container');
+if (container.style.display === 'none' || container.style.display === '') {
+container.style.display = 'block';
+} else {
+container.style.display = 'none';
+}
+}
+
+const fetchCryptoData = async () => {
+const cryptoIds = ['bitcoin', 'ethereum', 'tether', 'binancecoin', 'ripple'];
+const currency = 'php';
+const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds.join(',')}&vs_currencies=${currency}`;
+
+try {
+const response = await axios.get(apiUrl);
+const data = response.data;
+
+const labels = Object.keys(data).map(key => key.toUpperCase());
+const values = Object.values(data).map(crypto => crypto[currency]);
+
+renderCryptoChart(labels, values);
+displayCryptoValues(labels, values);
+} catch (error) {
+console.error('Error fetching cryptocurrency data:', error);
+}
+};
+
+const renderCryptoChart = (labels, values) => {
+const ctx = document.getElementById('cryptoChart').getContext('2d');
+new Chart(ctx, {
+type: 'bar',
+data: {
+labels: labels,
+datasets: [{
+label: 'Price in PHP',
+data: values,
+backgroundColor: '#4CAF50',
+borderColor: '#388E3C',
+borderWidth: 1
+}]
+},
+options: {
+responsive: true,
+plugins: {
+legend: {
+display: false,
+}
+},
+scales: {
+y: {
+beginAtZero: true
+}
+}
+}
+});
+};
+
+const displayCryptoValues = (labels, values) => {
+const cryptoValuesDiv = document.getElementById('cryptoValues');
+cryptoValuesDiv.innerHTML = labels.map((label, index) => `
+<div class="crypto-value">
+<strong>${label}</strong><br>₱${values[index].toLocaleString()}
+</div>
+`).join('');
+};
+
+let currentQuestionIndex = 0;
+let score = 0;
+let quizData = [];
+
+fetch('https://opentdb.com/api.php?amount=10&type=multiple')
+.then(response => response.json())
+.then(data => {
+quizData = data.results;
+loadQuestion();
+})
+.catch(error => console.error("Error fetching quiz data:", error));
+
+const loadQuestion = () => {
+const question = quizData[currentQuestionIndex];
+const quizContent = document.getElementById('quiz-content');
+const questionHTML = `
+<div class="question">${question.question}</div>
+<ul class="options">
+${[...question.incorrect_answers, question.correct_answer].map(option =>
+`<li><input type="radio" name="option" value="${option}"> ${option}</li>`
+).join('')}
+</ul>
+`;
+quizContent.innerHTML = questionHTML;
+};
+
+const nextQuestion = () => {
+const selectedOption = document.querySelector('input[name="option"]:checked');
+if (selectedOption) {
+const correctAnswer = quizData[currentQuestionIndex].correct_answer;
+if (selectedOption.value === correctAnswer) {
+score++;
+}
+}
+currentQuestionIndex++;
+if (currentQuestionIndex < quizData.length) {
+loadQuestion();
+} else {
+document.getElementById('result').innerText = `Your score is ${score} out of ${quizData.length}`;
+score = 0;
+currentQuestionIndex = 0;
+}
+};
+
+const getJoke = async () => {
+const jokeElement = document.getElementById('joke');
+try {
+const response = await axios.get('https://v2.jokeapi.dev/joke/Programming?type=single');
+jokeElement.innerText = response.data.joke || 'No joke available';
+} catch (error) {
+jokeElement.innerText = 'Failed to load joke!';
+}
+};
+
+fetchCryptoData();
+</script>
+
+</body>
+</html>
